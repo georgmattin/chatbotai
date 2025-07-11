@@ -8,9 +8,11 @@ import { ImageGenerator } from "@/components/image-generator"
 import { BatchImageGenerator } from "@/components/batch-image-generator"
 import { VideoGenerator } from "@/components/video-generator"
 import { TextRewriter } from "@/components/text-rewriter"
+import { SystemPromptModal } from "@/components/system-prompt-modal"
+import { ChatSettingsModal } from "@/components/chat-settings-modal"
 // Settings now come from .env file
 import { Button } from "@/components/ui/button"
-import { Menu, Plus } from "lucide-react"
+import { Menu, Plus, Settings, Settings2 } from "lucide-react"
 
 interface Message {
   id: string
@@ -19,12 +21,24 @@ interface Message {
   timestamp: Date
 }
 
+interface ChatSettings {
+  temperature?: number
+  maxTokens?: number
+  topP?: number
+  frequencyPenalty?: number
+  presencePenalty?: number
+  stopSequences?: string[]
+  pastMessagesLimit?: number
+}
+
 interface Chat {
   id: string
   title: string
   messages: Message[]
   createdAt: Date
   type?: 'chat' | 'image' | 'batch' | 'video' | 'rewrite'
+  systemPrompt?: string
+  settings?: ChatSettings
 }
 
 interface GeneratedImage {
@@ -63,6 +77,8 @@ export default function ChatApp() {
   const [sidebarOpen, setSidebarOpen] = useState(false) // Default closed on mobile
   const [isLoading, setIsLoading] = useState(false)
   const [isMobile, setIsMobile] = useState(false)
+  const [systemPromptModalOpen, setSystemPromptModalOpen] = useState(false)
+  const [chatSettingsModalOpen, setChatSettingsModalOpen] = useState(false)
 
   // Load chats from localStorage on mount
   useEffect(() => {
@@ -354,6 +370,14 @@ ${rewrittenText}
         },
         body: JSON.stringify({
           messages: apiMessages,
+          systemPrompt: currentChat.systemPrompt,
+          temperature: currentChat.settings?.temperature,
+          maxTokens: currentChat.settings?.maxTokens,
+          topP: currentChat.settings?.topP,
+          frequencyPenalty: currentChat.settings?.frequencyPenalty,
+          presencePenalty: currentChat.settings?.presencePenalty,
+          stopSequences: currentChat.settings?.stopSequences,
+          pastMessagesLimit: currentChat.settings?.pastMessagesLimit,
         }),
       })
 
@@ -432,6 +456,30 @@ ${error instanceof Error ? error.message : String(error)}
     createInitialChat()
   }
 
+  const handleSystemPromptSave = (systemPrompt: string) => {
+    if (!currentChatId) return
+    
+    setChats((prev) =>
+      prev.map((chat) =>
+        chat.id === currentChatId
+          ? { ...chat, systemPrompt: systemPrompt.trim() || undefined }
+          : chat
+      )
+    )
+  }
+
+  const handleChatSettingsSave = (settings: ChatSettings) => {
+    if (!currentChatId) return
+    
+    setChats((prev) =>
+      prev.map((chat) =>
+        chat.id === currentChatId
+          ? { ...chat, settings }
+          : chat
+      )
+    )
+  }
+
   return (
     <div className="flex h-screen bg-[#0d1117] text-white relative">
       {/* Mobile Overlay */}
@@ -476,6 +524,28 @@ ${error instanceof Error ? error.message : String(error)}
             </h1>
           </div>
           <div className="flex gap-2">
+            {currentChat?.type === 'chat' && (
+              <>
+                <Button
+                  onClick={() => setSystemPromptModalOpen(true)}
+                  size="sm"
+                  variant="outline"
+                  className="gap-1 md:gap-2 border-[#21262d] text-[#8b949e] hover:bg-[#21262d] hover:text-[#f0f6fc] text-xs md:text-sm px-2 md:px-3"
+                >
+                  <Settings className="h-3 w-3 md:h-4 md:w-4" />
+                  <span className="hidden md:inline">Juhendid</span>
+                </Button>
+                <Button
+                  onClick={() => setChatSettingsModalOpen(true)}
+                  size="sm"
+                  variant="outline"
+                  className="gap-1 md:gap-2 border-[#21262d] text-[#8b949e] hover:bg-[#21262d] hover:text-[#f0f6fc] text-xs md:text-sm px-2 md:px-3"
+                >
+                  <Settings2 className="h-3 w-3 md:h-4 md:w-4" />
+                  <span className="hidden md:inline">API</span>
+                </Button>
+              </>
+            )}
             <Button
               onClick={createNewChat}
               size="sm"
@@ -579,8 +649,23 @@ ${error instanceof Error ? error.message : String(error)}
         )}
       </div>
 
-      {/* Settings Modal */}
-              {/* Settings now managed through .env file */}
+      {/* System Prompt Modal */}
+      <SystemPromptModal
+        isOpen={systemPromptModalOpen}
+        onClose={() => setSystemPromptModalOpen(false)}
+        currentSystemPrompt={currentChat?.systemPrompt}
+        onSave={handleSystemPromptSave}
+        chatTitle={currentChat?.title || "Vestlus"}
+      />
+
+      {/* Chat Settings Modal */}
+      <ChatSettingsModal
+        isOpen={chatSettingsModalOpen}
+        onClose={() => setChatSettingsModalOpen(false)}
+        currentSettings={currentChat?.settings}
+        onSave={handleChatSettingsSave}
+        chatTitle={currentChat?.title || "Vestlus"}
+      />
     </div>
   )
 }

@@ -7,7 +7,17 @@ interface Message {
 
 export async function POST(request: NextRequest) {
   try {
-    const { messages } = await request.json()
+    const { 
+      messages, 
+      systemPrompt, 
+      temperature,
+      maxTokens,
+      topP,
+      frequencyPenalty,
+      presencePenalty,
+      stopSequences,
+      pastMessagesLimit
+    } = await request.json()
 
     // Get API settings from environment variables
     const apiKey = process.env.AZURE_OPENAI_KEY
@@ -33,15 +43,65 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    // Prepare messages array with optional system prompt
+    let apiMessages = [...messages]
+    if (systemPrompt && systemPrompt.trim()) {
+      // Add system prompt as the first message
+      apiMessages = [
+        { role: 'system', content: systemPrompt.trim() },
+        ...messages
+      ]
+    }
+
+    // Limit past messages if specified
+    if (pastMessagesLimit && pastMessagesLimit > 0 && apiMessages.length > pastMessagesLimit) {
+      // Keep system message (if any) and limit the rest
+      const systemMessage = apiMessages.find(msg => msg.role === 'system')
+      const otherMessages = apiMessages.filter(msg => msg.role !== 'system')
+      const limitedMessages = otherMessages.slice(-pastMessagesLimit)
+      apiMessages = systemMessage ? [systemMessage, ...limitedMessages] : limitedMessages
+    }
+
+    // Prepare API request body with all parameters
+    const requestBody: any = {
+      messages: apiMessages
+    }
+
+    // Add optional parameters if provided
+    if (temperature !== undefined && temperature !== null) {
+      requestBody.temperature = Math.max(0, Math.min(1, temperature))
+    }
+    
+    if (maxTokens !== undefined && maxTokens !== null && maxTokens > 0) {
+      requestBody.max_tokens = Math.min(16384, Math.max(1, maxTokens))
+    }
+    
+    if (topP !== undefined && topP !== null) {
+      requestBody.top_p = Math.max(0, Math.min(1, topP))
+    }
+    
+    if (frequencyPenalty !== undefined && frequencyPenalty !== null) {
+      requestBody.frequency_penalty = Math.max(-2, Math.min(2, frequencyPenalty))
+    }
+    
+    if (presencePenalty !== undefined && presencePenalty !== null) {
+      requestBody.presence_penalty = Math.max(-2, Math.min(2, presencePenalty))
+    }
+    
+    if (stopSequences && Array.isArray(stopSequences) && stopSequences.length > 0) {
+      const validStops = stopSequences.filter(stop => stop && stop.trim()).slice(0, 4)
+      if (validStops.length > 0) {
+        requestBody.stop = validStops
+      }
+    }
+
     const response = await fetch(apiEndpoint, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'api-key': apiKey,
       },
-      body: JSON.stringify({
-        messages: messages
-      }),
+      body: JSON.stringify(requestBody),
     })
 
     if (!response.ok) {
