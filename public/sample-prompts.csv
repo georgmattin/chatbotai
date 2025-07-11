@@ -1,0 +1,11 @@
+id,prompt,size,style,quality
+1,"A beautiful landscape with mountains and lakes at sunset",1024x1024,vivid,hd
+2,"A modern cityscape at night with neon lights",1792x1024,vivid,hd
+3,"A cozy coffee shop interior with warm lighting",1024x1792,natural,standard
+4,"A futuristic robot in a laboratory setting",1024x1024,vivid,hd
+5,"A peaceful forest path with sunlight filtering through trees",1792x1024,natural,hd
+6,"Ancient Egyptian pyramids under starry night sky",1024x1024,vivid,hd
+7,"Tranquil desert landscape with sand dunes",1792x1024,natural,hd
+8,"Modern art gallery with contemporary paintings",1024x1792,natural,standard
+9,"Tropical beach with palm trees and crystal clear water",1792x1024,vivid,hd
+10,"Mountain cabin in winter with snow-covered trees",1024x1024,natural,hd 
